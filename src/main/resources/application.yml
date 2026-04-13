@@ -1,0 +1,20 @@
+logging:
+  level:
+    root: WARN
+    spring.database.repository.pool: INFO
+  file:
+    name: by.javaguru
+    path: /
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: aezakmi
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    properties.hibernate:
+      show_sql: true
+      format_sql: true
+      hdm2ddl.auto: validate
