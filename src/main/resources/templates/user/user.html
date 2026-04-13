@@ -5,39 +5,60 @@
     <title>Users</title>
 </head>
 <body>
-<form th:action="@{/users/{userId}/update(userId=${user.id})}" method="post" th:object="${user}">
+
+<!-- Форма обновления: одно ${} на всё условие -->
+<form th:action="@{/users/{userId}/update(userId=${user.id})}"
+      method="post"
+      th:object="${user}"
+      th:if="${isAdmin or (currentUser != null and currentUser.id == user.id)}">
+
     <label for="name">Name:
         <input id="name" type="text" name="name" th:value="*{name}">
     </label><br>
+
     <label for="birthday">Birthday:
         <input id="birthday" type="date" name="birthday" th:value="*{birthday}">
     </label><br>
+
     <label for="email">Email:
         <input id="email" type="text" name="email" th:value="*{email}">
     </label><br>
-    <label for="password">Password:
-        <input id="password" type="password" name="password" th:value="*{password}">
+
+    <label for="password">New Password:
+        <input id="password" type="password" name="password" placeholder="••••••••">
     </label><br>
-    <div th:each="role : ${roles}">
-        <input th:id="${role}"
-               type="radio"
-               name="role"
-               th:value="${role.name()}"
-               th:checked="${user.role == role}">
-        <label th:for="${role}" th:text="${role}">Role name</label>
+
+    <!-- Выбор роли: только для админа -->
+    <div th:if="${isAdmin}">
+        <div th:each="role : ${roles}">
+            <input th:id="${role}" type="radio" name="role"
+                   th:value="${role.name()}" th:checked="${user.role == role}">
+            <label th:for="${role}" th:text="${role}">Role name</label>
+        </div>
     </div>
+
+    <!-- Если не админ - показываем роль как текст -->
+    <div th:if="${!isAdmin}">
+        <p><strong>Role:</strong> <span th:text="${user.role}"></span></p>
+    </div>
+
+    <!-- Gender -->
     <div th:each="gender : ${genders}">
-        <input th:id="${gender}"
-               type="radio"
-               name="gender"
-               th:value="${gender.name()}"
-               th:checked="${user.gender == gender}">
+        <input th:id="${gender}" type="radio" name="gender"
+               th:value="${gender.name()}" th:checked="${user.gender == gender}">
         <label th:for="${gender}" th:text="${gender}">Gender name</label>
     </div>
+
     <button type="submit">Update</button>
 </form>
-<form th:action="@{/users/{userId}/delete(userId=${user.id})}" th:if="${user.role.name() == 'ADMIN'}" method="post">
-    <button type="submit">Remove</button>
+
+<!-- Кнопка удаления: только админ -->
+<form th:action="@{/users/{userId}/delete(userId=${user.id})}"
+      th:if="${isAdmin}"
+      method="post"
+      onsubmit="return confirm('Are you sure?');">
+    <button type="submit" style="color: red;">Remove</button>
 </form>
+
 </body>
 </html>

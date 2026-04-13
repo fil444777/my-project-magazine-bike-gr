@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import spring.config.CurrentUserHolder;
 import spring.database.entity.Gender;
 import spring.database.entity.Role;
 import spring.dto.PageResponse;
@@ -28,6 +29,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
+    private final CurrentUserHolder currentUserHolder;
 
     @GetMapping
     public String findAll(Model model, UserFilter filter, Pageable pageable) {
@@ -43,16 +45,20 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public String login (@RequestParam("email") String email,
-                         @RequestParam String password) {
-        System.out.println("Попытка входа " + email);
+    public String login(@RequestParam("email") String email,
+                        @RequestParam("password") String password,
+                        Model model) {
+        System.out.println("Попытка входа: " + email);
+
         Optional<UserReadDto> maybeUser = userService.authenticate(email, password);
         System.out.println("Result: " + maybeUser.isPresent());
 
         if (maybeUser.isEmpty()) {
-            return "redirect:/login?error";
+            return "redirect:/users/login?error";
         }
+
         UserReadDto user = maybeUser.get();
+        currentUserHolder.setUser(user);
         if (user.getRole() == Role.ADMIN) {
             return "redirect:/users";
         }
@@ -65,6 +71,18 @@ public class UserController {
         model.addAttribute("roles", Role.values());
         model.addAttribute("genders", Gender.values());
         return "user/registration";
+    }
+
+    @GetMapping("/{id}")
+    public String findById(@PathVariable("id") Integer id, Model model) {
+        return userService.findById(id)
+                .map(user -> {
+                    model.addAttribute("user", user);
+                    model.addAttribute("roles", Role.values());
+                    model.addAttribute("genders", Gender.values());
+                    return "user/user";
+                })
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     }
 
     @PostMapping("{id}/update")
