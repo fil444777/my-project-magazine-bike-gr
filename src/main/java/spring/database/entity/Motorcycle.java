@@ -34,6 +34,7 @@ public class Motorcycle implements BaseEntity<Integer> {
     @JoinColumn(name = "manufacturers_id")
     private Manufacturer manufacturer;
 
+    @Builder.Default
     @OneToMany(
             mappedBy = "motorcycles",
             cascade = CascadeType.REMOVE,

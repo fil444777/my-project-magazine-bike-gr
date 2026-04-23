@@ -30,6 +30,7 @@ public class User implements BaseEntity<Integer>{
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
+    @Builder.Default
     @OneToMany(
             mappedBy = "user",
             cascade = CascadeType.REMOVE,

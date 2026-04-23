@@ -21,6 +21,7 @@ public class Manufacturer {
 
     private String name;
 
+    @Builder.Default
     @OneToMany(
             mappedBy = "manufacturer",
             cascade = CascadeType.REMOVE,
