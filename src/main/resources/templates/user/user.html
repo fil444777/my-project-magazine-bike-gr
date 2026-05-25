@@ -2,15 +2,16 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Users</title>
+    <title>User</title>
 </head>
 <body>
 
-<!-- Форма обновления: одно ${} на всё условие -->
+<div th:insert="~{fragment :: header}"></div>
+
 <form th:action="@{/users/{userId}/update(userId=${user.id})}"
       method="post"
       th:object="${user}"
-      th:if="${isAdmin or (currentUser != null and currentUser.id == user.id)}">
+      th:if="${canEdit}">
 
     <label for="name">Name:
         <input id="name" type="text" name="name" th:value="*{name}">
@@ -28,7 +29,6 @@
         <input id="password" type="password" name="password" placeholder="••••••••">
     </label><br>
 
-    <!-- Выбор роли: только для админа -->
     <div th:if="${isAdmin}">
         <div th:each="role : ${roles}">
             <input th:id="${role}" type="radio" name="role"
@@ -37,12 +37,10 @@
         </div>
     </div>
 
-    <!-- Если не админ - показываем роль как текст -->
     <div th:if="${!isAdmin}">
         <p><strong>Role:</strong> <span th:text="${user.role}"></span></p>
     </div>
 
-    <!-- Gender -->
     <div th:each="gender : ${genders}">
         <input th:id="${gender}" type="radio" name="gender"
                th:value="${gender.name()}" th:checked="${user.gender == gender}">
@@ -52,7 +50,6 @@
     <button type="submit">Update</button>
 </form>
 
-<!-- Кнопка удаления: только админ -->
 <form th:action="@{/users/{userId}/delete(userId=${user.id})}"
       th:if="${isAdmin}"
       method="post"

@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -12,7 +14,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import spring.config.CurrentUserHolder;
 import spring.database.entity.Gender;
 import spring.database.entity.Role;
 import spring.dto.PageResponse;
@@ -29,7 +30,6 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
-    private final CurrentUserHolder currentUserHolder;
 
     @GetMapping
     public String findAll(Model model, UserFilter filter, Pageable pageable) {
@@ -39,31 +39,6 @@ public class UserController {
         return "user/users";
     }
 
-    @GetMapping("/login")
-    public String loginPage() {
-        return "user/login";
-    }
-
-    @PostMapping("/login")
-    public String login(@RequestParam("email") String email,
-                        @RequestParam("password") String password,
-                        Model model) {
-        System.out.println("Попытка входа: " + email);
-
-        Optional<UserReadDto> maybeUser = userService.authenticate(email, password);
-        System.out.println("Result: " + maybeUser.isPresent());
-
-        if (maybeUser.isEmpty()) {
-            return "redirect:/users/login?error";
-        }
-
-        UserReadDto user = maybeUser.get();
-        currentUserHolder.setUser(user);
-        if (user.getRole() == Role.ADMIN) {
-            return "redirect:/users";
-        }
-        return "redirect:/users/" + user.getId();
-    }
 
     @GetMapping("/registration")
     public String registration(Model model, @ModelAttribute("user") UserCreateEditDto user) {
@@ -74,10 +49,25 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public String findById(@PathVariable("id") Integer id, Model model) {
+    public String findById(@PathVariable("id") Integer id, Model model,
+                           @AuthenticationPrincipal UserDetails userDetails) {
+        var currentUser = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        boolean isOwner = currentUser.getId().equals(id);
+        boolean isAdminOrOperator = currentUser.getRole().equals(Role.ADMIN)
+                || currentUser.getRole().equals(Role.OPERATOR);
+
+        if (!isOwner && !isAdminOrOperator) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
         return userService.findById(id)
                 .map(user -> {
                     model.addAttribute("user", user);
+                    model.addAttribute("currentUser", currentUser);
+                    model.addAttribute("isAdmin", isAdminOrOperator);
+                    model.addAttribute("canEdit", isOwner || isAdminOrOperator);
                     model.addAttribute("roles", Role.values());
                     model.addAttribute("genders", Gender.values());
                     return "user/user";
@@ -86,7 +76,16 @@ public class UserController {
     }
 
     @PostMapping("{id}/update")
-    public String update(@PathVariable("id") Integer id, @ModelAttribute @Validated UserCreateEditDto user) {
+    public String update(@PathVariable("id") Integer id, @ModelAttribute @Validated UserCreateEditDto user,
+                         @AuthenticationPrincipal UserDetails userDetails) {
+        var currentUser = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        if (!currentUser.getId().equals(id)
+                && !currentUser.getRole().equals(Role.ADMIN)
+                && !currentUser.getRole().equals(Role.OPERATOR)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
 //        userService.update(id, user);
         return userService.update(id, user)
                 .map(it -> "redirect:/users/{id}")
@@ -109,7 +108,15 @@ public class UserController {
 
     //    @DeleteMapping("/{id}")
     @PostMapping("/{id}/delete")
-    public String delete(@PathVariable("id") Integer id) {
+    public String delete(@PathVariable("id") Integer id,
+                         @AuthenticationPrincipal UserDetails userDetails) {
+        var currentUser = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        if (!currentUser.getId().equals(id)
+                && !currentUser.getRole().equals(Role.ADMIN)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
         if (!userService.delete(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }

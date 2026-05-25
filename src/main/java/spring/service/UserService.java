@@ -37,6 +37,11 @@ public class UserService {
                 .map(userReadMapper::map);
     }
 
+    public Optional<UserReadDto> findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .map(userReadMapper::map);
+    }
+
     public Optional<UserReadDto> findById(Integer id) {
         return userRepository.findById(id)
                 .map(userReadMapper::map);
@@ -70,9 +75,4 @@ public class UserService {
                 .orElse(false);
     }
 
-    public Optional<UserReadDto> authenticate(String email, String password) {
-        return userRepository.findByEmail(email)
-                .filter(user -> password.equals(user.getPassword()))
-                .map(userReadMapper::map);
-    }
 }
