@@ -13,6 +13,7 @@
     You have been logged out.
 </div>
 
+<div th:insert="~{fragment :: locale}"></div>
 <form th:action="@{/login}" method="post">
     <label for="email">Email:
         <input id="email" type="text" name="username" required>

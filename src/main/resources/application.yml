@@ -18,3 +18,5 @@ spring:
       show_sql: true
       format_sql: true
       hdm2ddl.auto: validate
+  messages:
+    basename: messages
